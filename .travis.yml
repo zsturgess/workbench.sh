@@ -1,6 +1,15 @@
 language: bash
 os:
-  - linux
-  - osx
+- linux
+- osx
 script:
-  - bash tests.sh
+- bash tests.sh
+
+deploy:
+  provider: releases
+  api_key:
+    secure: bqhtwlpi+LXR725Zbtg3jOLrA7j3lvauuRY1jI5YcPFl97w8khwfbgVQTUV5rL4+1IBYkbodTczFOJDhv/b7UkacKOrJs5uoHXA/3rxzuk+T8qrDPr5lznkJ4NlXMXL69J8e6Lo/KHzJ8PfaqB+YSbRpLB3jkNA1jUf8s6CNysjXuA7CTJHw2Vi3OE5cuQHZzjhuhH0eR61bmgdZHcJk7RopHzXpapkf1MFegL9jER4TXUg4VEdBhsR2TmBmMbvwHElVq1bwD2d6+0Cbwy5rAfq8fTtOP0hl30xyXDa96/Uzsm7SZwxqrRbuKPowyg0TjJHHjb++tqdb9jy1KrG703pw49nnBHZcAkxEe6YslwfvvE3FHn6M7huUmwnl8OOXHSeStwSTtWoBnMOlttrHl5TmshKwAyjWsX8m3pO9x60lNKLcDBHktXutac0qnEp9YD18O4qRH/ExvNw9jWZJOTSdE13jZhzSArp/28b2t6+xaNrGLXY4VOhW2oauPbvX4+dhWiPiphztwhD1vStQ5/K08JmdbSgBdUi5VsZb2LHw0gkVK/5imrfg/1wvQZMVbeObpgUSul/okb7hwaz2PVu+dQ85TOZKM8E7BFzyOt8EHsE05dIAzKpp2dBCJDJm/xqOgMx5194zl8Y/GKbuZhdLBDMnqRWqJTXd934efCw=
+  file: workbench.sh
+  on:
+    tags: true
+    repo: zsturgess/workbench.sh

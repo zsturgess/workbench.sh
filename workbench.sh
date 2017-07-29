@@ -1,4 +1,3 @@
-# Requires curl >= 7.18.0
 # @todo:
 #  - Different output formats
 # Table output: https://stackoverflow.com/questions/12768907/bash-output-tables

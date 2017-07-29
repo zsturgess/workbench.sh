@@ -8,7 +8,21 @@ Workbench.sh is a creation of Zac Sturgess. See also the [list of contributors](
 
 ## Installation
 
-@TODO
+Workbench.sh requires a command-line version of `curl` >= 7.18.0. You can check your local version by running `curl -V`.
+
+It's recommended to use [the latest tagged release](https://github.com/zsturgess/workbench.sh/releases) of Workbench.sh, just in case something gets broken in development.
+
+Simply download the `workbench.sh` file to a location of your choosing, make it executable (`chmod u+x workbench.sh`), and run it (`./workbench.sh`).
+
+Workbench.sh will help you set up your default config file the first time you attempt to use it.
+
+## Usage
+
+Workbench.sh comes with extensive on-board help:
+
+```
+./workbench.sh -h
+```
 
 ## License
 
