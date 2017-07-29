@@ -1,7 +1,6 @@
 # Requires curl >= 7.18.0
 # @todo:
 #  - Different output formats
-#  - Document config file options & format in help
 # Table output: https://stackoverflow.com/questions/12768907/bash-output-tables
 
 default_config_location="${HOME}/.workbench-cli.conf"
@@ -31,6 +30,36 @@ function usage() {
   echo '  -q <SOQL Query>'
   echo '    Runs the SOQL query provided against your org and displays the results'
   echo
+  echo "${bold}Config files:${normal}"
+  echo
+  echo '  Workbench.sh will help you set up your default config file the first'
+  echo '  time you attempt to use it. Config files take the form of bash scripts'
+  echo "  that simply define variables e.g. var_name='var_value'"
+  echo
+  echo '  The full list of options that can be defined in a config file is:'
+  echo
+  echo '  sf_username'
+  echo '    The username to authenticate on the API with'
+  echo
+  echo '  sf_password'
+  echo '    The password (and secret token) to authenticate on the API with'
+  echo
+  echo '  sf_instance'
+  echo '    The instance your org is on (i.e. na5, eu7, cs81)'
+  echo
+  echo '  sf_api_version'
+  echo '    (Optional) The version of the REST API to use'
+  echo
+  echo '  sf_client_id / sf_client_secret'
+  echo '    (Optional) Workbench.sh will use a built-in connected application'
+  echo '    to communicate with your org via the API. If you want to use your'
+  echo '    own connected application, you will need to create one and put'
+  echo '    the oauth client_id and client_secret in your config file.'
+  echo '    (http://help.salesforce.com/apex/HTViewHelpDoc?id=connected_app_create.htm&language=en_US)'
+  echo
+  echo '  You can use workbench.sh with multiple orgs by keeping each orgs config'
+  echo "  in seperate files and using the ${bold}-c${normal} option to pick which config (and"
+  echo '  therefore which org) to use'
 }
 
 function alert() {
