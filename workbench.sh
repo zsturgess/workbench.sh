@@ -7,6 +7,7 @@ normal=$(tput sgr0)
 sf_api_version='v40.0'
 sf_client_id='3MVG99OxTyEMCQ3hSjz15qIUWtIhsQynMvhMgcxDgAxS0DRiDsDP2ZLTv_ywkjvbAdeanmHWInQ=='
 sf_client_secret='7383101323593261180'
+format='json'
 
 function usage() {
   echo "Workbench.sh ${bold}@DEV${normal}"
@@ -22,7 +23,11 @@ function usage() {
   echo '  -d <OBJECT NAME>'
   echo '    Describes the attributes, fields, record types, and child'
   echo '    relationships of the object you name'
-  echo;
+  echo
+  echo '  -f <FORMAT>'
+  echo '    Display results in the given format. Valid values are json and xml'
+  echo "    If you don't provide this option, it will default to json"
+  echo
   echo '  -h'
   echo '    Displays this help message'
   echo
@@ -56,6 +61,9 @@ function usage() {
   echo '    the oauth client_id and client_secret in your config file.'
   echo '    (http://help.salesforce.com/apex/HTViewHelpDoc?id=connected_app_create.htm&language=en_US)'
   echo
+  echo '  format'
+  echo '    A default format to use. Valid values are xml or json'
+  echo
   echo '  You can use workbench.sh with multiple orgs by keeping each orgs config'
   echo "  in seperate files and using the ${bold}-c${normal} option to pick which config (and"
   echo '  therefore which org) to use'
@@ -73,6 +81,7 @@ fi
 while [[ "$#" > 1 ]]; do case $1 in
     -c) config_location="$2";;
     -d) describe="$2";;
+    -f) format="$2";;
     -h) usage; exit 0;;
     -q) query="$2";;
     *) alert "Unrecognised option $1"; usage; exit 1;
@@ -113,7 +122,7 @@ fi
 
 source $config_location
 
-oauth2response=`curl https://${sf_instance}.salesforce.com/services/oauth2/token -d "grant_type=password" -d "client_id=${sf_client_id}" -d "client_secret=${sf_client_secret}" -d "username=${sf_username}" -d "password=${sf_password}"`
+oauth2response=`curl -sS https://${sf_instance}.salesforce.com/services/oauth2/token -d "grant_type=password" -d "client_id=${sf_client_id}" -d "client_secret=${sf_client_secret}" -d "username=${sf_username}" -d "password=${sf_password}"`
 pattern='"access_token":"([^"]*)"'
 
 if [[ $oauth2response =~ $pattern ]]; then	
@@ -125,11 +134,11 @@ else
 fi
 
 if [ ! -z "$query" ]; then
-  curl -G --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
+  curl -sSG --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
   echo
 fi
 
 if [ ! -z "$describe" ]; then
-  curl -G "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/sobjects/${describe}/describe/" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
+  curl -sSG "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/sobjects/${describe}/describe.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
   echo
 fi
