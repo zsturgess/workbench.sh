@@ -1,6 +1,5 @@
-# @todo:
-#  - Different output formats
-# Table output: https://stackoverflow.com/questions/12768907/bash-output-tables
+# Workbench.sh @DEV
+# Workbench.sh is a bash script designed to bring some of the power of the Salesforce Workbench to the command-line.
 
 default_config_location="${HOME}/.workbench-cli.conf"
 bold=$(tput bold)
@@ -10,6 +9,7 @@ sf_client_id='3MVG99OxTyEMCQ3hSjz15qIUWtIhsQynMvhMgcxDgAxS0DRiDsDP2ZLTv_ywkjvbAd
 sf_client_secret='7383101323593261180'
 
 function usage() {
+  echo "Workbench.sh ${bold}@DEV${normal}"
   echo
   echo "${bold}Usage:${normal} workbench.sh [OPTIONS]"
   echo
