@@ -4,6 +4,12 @@ os:
 - osx
 script:
 - bash tests.sh
+before_deploy:
+- sed -i "s/@DEV/$TRAVIS_TAG/" workbench.sh
+branches:
+  only:
+  - master
+  - /^v[0-9]+\.[0-9]+\.[0-9]+/
 
 deploy:
   provider: releases
@@ -13,3 +19,5 @@ deploy:
   on:
     tags: true
     repo: zsturgess/workbench.sh
+    condition: "$TRAVIS_OS_NAME = linux"
+  skip_cleanup: true
