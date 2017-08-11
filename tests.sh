@@ -27,6 +27,12 @@ setUpConfigFile()
   cp test-files/basic.workbench-cli.conf ~/.workbench-cli.conf
 }
 
+useTokenBearingCurlMock()
+{
+  rm test-files/mocks/curl
+  ln -s token-bearing-curl test-files/mocks/curl
+}
+
 testErrorsWhenRunWithNoOptions()
 {
   assertFalse 'Returns error code when run with no options' ./workbench.sh
@@ -77,32 +83,61 @@ testSkipsFirstTimeSetupWhenConfigExists()
 
 testUsesCustomConfigWhenProvided()
 {
-  true
+  setUpConfigFile
+  output=`./workbench.sh -c test-files/basic2.workbench-cli.conf -d Lead`
+  assertTrue 'Made call to instance from custom config' '[[ $output == *"curl -sS https://instance2.salesforce.com/services/oauth2/token"* ]]'
+}
+
+testErrorsOnFailureToGrabAccessTokenFromSFDC()
+{
+  setUpConfigFile
+  assertFalse 'Returns error code when unable to grab access token from SFDC' './workbench.sh -d Lead'
 }
 
 testHandlesFailureToGrabAccessTokenFromSFDC()
 {
-  true
+  setUpConfigFile
+  output=`./workbench.sh -d Lead`
+  assertTrue 'Shows user error message when unable to grab access token from SFDC' '[[ $output == *"Failed to grab access token from Salesforce"* ]]'
 }
 
 testHandlesQueries()
 {
-  true
+  setUpConfigFile
+  useTokenBearingCurlMock
+  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1'`
+  assertTrue 'Made query call to SFDC API' '[[ $output == *"curl -sSG --data-urlencode q=SELECT Id FROM Lead LIMIT 1 https://instance.salesforce.com/services/data/v40.0/query.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
 testHandlesDescribes()
 {
-  true
+  setUpConfigFile
+  useTokenBearingCurlMock
+  output=`./workbench.sh -d Lead`
+  assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
 testHandlesQueriesInXML()
 {
-  true
+  setUpConfigFile
+  useTokenBearingCurlMock
+  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1' -f xml`
+  assertTrue 'Made query call to SFDC API' '[[ $output == *"curl -sSG --data-urlencode q=SELECT Id FROM Lead LIMIT 1 https://instance.salesforce.com/services/data/v40.0/query.xml -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
 testHandlesDecribesInXML()
 {
-  true
+  setUpConfigFile
+  useTokenBearingCurlMock
+  output=`./workbench.sh -d Lead -f xml`
+  assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.xml -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
+}
+
+tearDown()
+{
+  # Reset mocks
+  rm test-files/mocks/curl
+  ln -s echo-mock test-files/mocks/curl 
 }
 
 oneTimeTearDown()
