@@ -26,6 +26,7 @@ function usage() {
   echo
   echo '  -f <FORMAT>'
   echo '    Display results in the given format. Valid values are json and xml'
+  echo '    If ran with -q, you may also specify csv or table as values'
   echo "    If you don't provide this option, it will default to json"
   echo
   echo '  -h'
@@ -71,6 +72,32 @@ function usage() {
 
 function alert() {
   echo "${bold}[!]${normal} $1"
+}
+
+function parseSOQLQueryForFields() {
+  local pattern='SELECT (.*) FROM'
+
+  if [[ $1 =~ $pattern ]]; then
+    local fields="${BASH_REMATCH[1]}"
+  else
+    alert 'Invalid SOQL Query'
+    echo "Usage: workbench.sh -q 'SELECT Field1, Field2 FROM Object [WHERE Field1 = \"value\"]'"
+    exit 1
+  fi
+
+  local IFS=','
+  local line='------------------------------'
+
+  for item in $fields; do
+    item=${item// /}
+    headerrow="${headerrow}, \"$item\""
+    underlinerow="${underlinerow}, \"${line:(${#line} - ${#item})}\""
+    fieldfilter="${fieldfilter}, .${item}"
+  done
+
+  headerrow=${headerrow:2}
+  underlinerow=${underlinerow:2}
+  fieldfilter=${fieldfilter:2}
 }
 
 if [[ "$#" < 2 ]]; then
@@ -134,7 +161,23 @@ else
 fi
 
 if [ ! -z "$query" ]; then
-  curl -sSG --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
+  if [ $format == "csv" ] || [ $format == "table" ]; then
+    parseSOQLQueryForFields "$query"
+
+    originalformat=$format
+    format='json'
+  fi
+
+  output=`curl -sSG --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"`
+
+  if [ $originalformat == "csv" ]; then
+    echo "$output" | jq -r "[$headerrow], (.records[] | [$fieldfilter]) | @csv"
+  elif [ $originalformat == "table" ]; then
+    echo "$output" | jq -r "[$headerrow], [$underlinerow], (.records[] | [$fieldfilter]) | @csv" | sed 's/","/~/g' | sed 's/"//g' | column -t -s~
+  else
+    echo "$output"
+  fi
+
   echo
 fi
 

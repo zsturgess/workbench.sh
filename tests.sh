@@ -133,6 +133,15 @@ testHandlesDecribesInXML()
   assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.xml -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
+testFormatQueriesInCSV()
+{
+  false
+}
+
+testFormatQueriesInTables()
+{
+}
+
 tearDown()
 {
   # Reset mocks
