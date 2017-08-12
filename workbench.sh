@@ -9,6 +9,8 @@ sf_client_id='3MVG99OxTyEMCQ3hSjz15qIUWtIhsQynMvhMgcxDgAxS0DRiDsDP2ZLTv_ywkjvbAd
 sf_client_secret='7383101323593261180'
 format='json'
 
+which jq > /dev/null && format='table'
+
 function usage() {
   echo "Workbench.sh ${bold}@DEV${normal}"
   echo
@@ -29,6 +31,7 @@ function usage() {
   echo '    You may also specify csv or table as values, although the jq'
   echo '    utility (https://stedolan.github.io/jq/) must be installed'
   echo "    If you don't provide this option, it will default to json"
+  echo "    when jq isn't available and table when it is"
   echo
   echo '  -h'
   echo '    Displays this help message'
@@ -211,7 +214,7 @@ fi
 # Handle describe calls
 if [ ! -z "$describe" ]; then
   if [[ $format == "csv" ]]; then
-    alert 'CSV format is not supported for describe operations'
+    alert 'CSV format is not supported for describe operation'
     exit 1
   elif [[ $format == "table" ]]; then
     originalformat=$format

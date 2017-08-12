@@ -8,7 +8,7 @@ Workbench.sh is a creation of Zac Sturgess. See also the [list of contributors](
 
 ## Installation
 
-Workbench.sh requires a command-line version of `curl` >= 7.18.0. You can check your local version by running `curl -V`.
+Workbench.sh requires a command-line version of `curl` >= 7.18.0. You can check your local version by running `curl -V`. If you want to output in CSV or tabular format, you will also need to install [jq](https://stedolan.github.io/jq).
 
 It's recommended to use [the latest tagged release](https://github.com/zsturgess/workbench.sh/releases) of Workbench.sh, just in case something gets broken in development.
 
