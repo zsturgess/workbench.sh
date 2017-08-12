@@ -220,7 +220,7 @@ fi
 # Handle describe calls
 if [ ! -z "$describe" ]; then
   if [[ $format == "csv" ]]; then
-    alert 'CSV format is not supported for describe operation'
+    alert 'The CSV format is not supported for describe operation'
     exit 1
   elif [[ $format == "table" ]]; then
     originalformat=$format

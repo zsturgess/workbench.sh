@@ -90,7 +90,9 @@ testUsesCustomConfigWhenProvided()
 
 testErrorsOnInvalidOutputFormat()
 {
-  false
+  setUpConfigFile
+  assertFalse 'Returns error code when run with unrecognised output format' './workbench.sh -d Lead -f potato'
+  assertTrue 'Shows error message when run with unrecognised output format' '[[ "`./workbench.sh -d Lead -f potato`" == *"Unknown format potato given"* ]]'
 }
 
 testErrorsOnFailureToGrabAccessTokenFromSFDC()
@@ -110,7 +112,7 @@ testHandlesQueries()
 {
   setUpConfigFile
   useTokenBearingCurlMock
-  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1'`
+  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1' -f json`
   assertTrue 'Made query call to SFDC API' '[[ $output == *"curl -sSG --data-urlencode q=SELECT Id FROM Lead LIMIT 1 https://instance.salesforce.com/services/data/v40.0/query.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
@@ -118,7 +120,7 @@ testHandlesDescribes()
 {
   setUpConfigFile
   useTokenBearingCurlMock
-  output=`./workbench.sh -d Lead`
+  output=`./workbench.sh -d Lead -f json`
   assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
@@ -150,7 +152,9 @@ testFormatQueriesInTables()
 
 testFormatDescribesInCSV()
 {
-  false
+  setUpConfigFile
+  assertFalse 'Returns error code when trying to run a describe in csv' './workbench.sh -d Lead -f csv'
+  assertTrue 'Shows error message when trying to run a describe in csv' '[[ "`./workbench.sh -d Lead -f csv`" == *"CSV format is not supported for describe operation" ]]' 
 }
 
 testFormatDescribesInTables()
