@@ -78,6 +78,12 @@ function alert() {
   echo "${bold}[!]${normal} $1"
 }
 
+function alertNoJq() {
+  alert 'jq must be installed and available on your $PATH for the csv or table output formats'
+  echo 'Install jq as instructed at https://stedolan.github.io/jq/download/ and try again'
+  exit 1
+}
+
 function parseSOQLQueryForFields() {
   shopt -s nocasematch
   local pattern='SELECT (.*) FROM '
@@ -179,7 +185,7 @@ case $format in
   json|xml)
     ;;
   csv|table)
-    which jq > /dev/null || alert 'jq must be installed and available on your $PATH for the csv or table output formats' && echo 'Install jq as instructed at https://stedolan.github.io/jq/download/ and try again' && exit 1 
+    which jq > /dev/null || alertNoJq 
     ;;
   *)
     alert "Unknown format $format given"
