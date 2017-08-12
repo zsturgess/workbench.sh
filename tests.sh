@@ -88,6 +88,11 @@ testUsesCustomConfigWhenProvided()
   assertTrue 'Made call to instance from custom config' '[[ $output == *"curl -sS https://instance2.salesforce.com/services/oauth2/token"* ]]'
 }
 
+testErrorsOnInvalidOutputFormat()
+{
+  false
+}
+
 testErrorsOnFailureToGrabAccessTokenFromSFDC()
 {
   setUpConfigFile
@@ -140,6 +145,17 @@ testFormatQueriesInCSV()
 
 testFormatQueriesInTables()
 {
+  false
+}
+
+testFormatDescribesInCSV()
+{
+  false
+}
+
+testFormatDescribesInTables()
+{
+  false
 }
 
 tearDown()
