@@ -135,14 +135,12 @@ fi
 while [[ "$#" > 1 ]]; do case $1 in
     -c) config_location="$2";;
     -d) describe="$2";;
-    -f) format="$2";;
+    -f) givenformat="$2";;
     -h) usage; exit 0;;
     -q) query="$2";;
     *) alert "Unrecognised option $1"; usage; exit 1;
   esac; shift; shift
 done
-
-format=$(echo $format | awk '{print tolower($0)}')
 
 # Detect first-time run and perform setup
 if [ ! -f $default_config_location ]; then
@@ -180,7 +178,14 @@ fi
 # Read config (custom or default)
 source $config_location
 
+# Override format from config if passed
+if [ ! -z "$givenformat" ]; then
+  format="$givenformat"
+fi
+
 # Check format
+format=$(echo $format | awk '{print tolower($0)}')
+
 case $format in
   json|xml)
     ;;
