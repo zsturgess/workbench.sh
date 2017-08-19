@@ -33,6 +33,12 @@ useTokenBearingCurlMock()
   ln -s token-bearing-curl test-files/mocks/curl
 }
 
+useFullCurlMock()
+{
+  rm test-files/mocks/curl
+  ln -s full-mock-curl test-files/mocks/curl
+}
+
 testErrorsWhenRunWithNoOptions()
 {
   assertFalse 'Returns error code when run with no options' ./workbench.sh
@@ -88,6 +94,13 @@ testUsesCustomConfigWhenProvided()
   assertTrue 'Made call to instance from custom config' '[[ $output == *"curl -sS https://instance2.salesforce.com/services/oauth2/token"* ]]'
 }
 
+testErrorsOnInvalidOutputFormat()
+{
+  setUpConfigFile
+  assertFalse 'Returns error code when run with unrecognised output format' './workbench.sh -d Lead -f potato'
+  assertTrue 'Shows error message when run with unrecognised output format' '[[ "`./workbench.sh -d Lead -f potato`" == *"Unknown format potato given"* ]]'
+}
+
 testErrorsOnFailureToGrabAccessTokenFromSFDC()
 {
   setUpConfigFile
@@ -105,7 +118,7 @@ testHandlesQueries()
 {
   setUpConfigFile
   useTokenBearingCurlMock
-  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1'`
+  output=`./workbench.sh -q 'SELECT Id FROM Lead LIMIT 1' -f json`
   assertTrue 'Made query call to SFDC API' '[[ $output == *"curl -sSG --data-urlencode q=SELECT Id FROM Lead LIMIT 1 https://instance.salesforce.com/services/data/v40.0/query.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
@@ -113,7 +126,7 @@ testHandlesDescribes()
 {
   setUpConfigFile
   useTokenBearingCurlMock
-  output=`./workbench.sh -d Lead`
+  output=`./workbench.sh -d Lead -f json`
   assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.json -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
 }
 
@@ -131,6 +144,45 @@ testHandlesDecribesInXML()
   useTokenBearingCurlMock
   output=`./workbench.sh -d Lead -f xml`
   assertTrue 'Made describe call to SFDC API' '[[ $output == *"curl -sSG https://instance.salesforce.com/services/data/v40.0/sobjects/Lead/describe.xml -H Authorization: Bearer BaT!vuMJgDaaVAj -H X-PrettyPrint:1"* ]]'
+}
+
+testFormatQueriesInCSV()
+{
+  which jq > /dev/null || startSkipping 
+  setUpConfigFile
+  useFullCurlMock
+  output=`./workbench.sh -q 'SELECT Id, Country, LastModifiedDate, LastActivityDate FROM Lead LIMIT 5' -f csv`
+  assertTrue 'Has CSV Headers' '[[ $(echo "$output"|head -n1) == "\"Id\",\"Country\",\"LastModifiedDate\",\"LastActivityDate\"" ]]'
+  assertTrue 'Handles null in line 1 correctly' '[[ $(echo "$output" | head -n2 | tail -n1) == "\"00Q2000000r9HEbEAM\",,\"2016-07-04T15:52:54.000+0000\",\"2016-07-04\"" ]]'
+  assertTrue 'Handles country in last line correctly' '[[ $(echo "$output" | tail -n1) == "\"00Q2000000stl6uEAA\",\"France\",\"2016-09-25T16:24:17.000+0000\",\"2016-11-11\"" ]]'
+}
+
+testFormatQueriesInTables()
+{
+  which jq > /dev/null || startSkipping 
+  false
+}
+
+testFormatDescribesInCSV()
+{
+  setUpConfigFile
+  assertFalse 'Returns error code when trying to run a describe in csv' './workbench.sh -d Lead -f csv'
+  assertTrue 'Shows error message when trying to run a describe in csv' '[[ "`./workbench.sh -d Lead -f csv`" == *"CSV format is not supported for describe operation"* ]]' 
+}
+
+testFormatDescribesInTables()
+{
+  which jq > /dev/null || startSkipping 
+  false
+}
+
+testFormatTablesWithNoJq()
+{
+  which jq > /dev/null && startSkipping
+  setUpConfigFile
+  useFullCurlMock
+  assertFalse 'Returns error code when requesting tables without jq' './workbench.sh -d Lead -f table'
+  assertTrue 'Shows error message when requesting tables without jq' '[[ "`./workbench.sh -d Lead -f table`" == *"jq must be installed and available on your $PATH for the csv or table output formats"* ]]'
 }
 
 tearDown()

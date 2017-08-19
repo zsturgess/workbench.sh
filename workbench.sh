@@ -9,6 +9,8 @@ sf_client_id='3MVG99OxTyEMCQ3hSjz15qIUWtIhsQynMvhMgcxDgAxS0DRiDsDP2ZLTv_ywkjvbAd
 sf_client_secret='7383101323593261180'
 format='json'
 
+which jq > /dev/null && format='table'
+
 function usage() {
   echo "Workbench.sh ${bold}@DEV${normal}"
   echo
@@ -26,7 +28,10 @@ function usage() {
   echo
   echo '  -f <FORMAT>'
   echo '    Display results in the given format. Valid values are json and xml'
+  echo '    You may also specify csv or table as values, although the jq'
+  echo '    utility (https://stedolan.github.io/jq/) must be installed'
   echo "    If you don't provide this option, it will default to json"
+  echo "    when jq isn't available and table when it is"
   echo
   echo '  -h'
   echo '    Displays this help message'
@@ -73,6 +78,55 @@ function alert() {
   echo "${bold}[!]${normal} $1"
 }
 
+function alertNoJq() {
+  alert 'jq must be installed and available on your $PATH for the csv or table output formats'
+  echo 'Install jq as instructed at https://stedolan.github.io/jq/download/ and try again'
+  exit 1
+}
+
+function parseSOQLQueryForFields() {
+  shopt -s nocasematch
+  local pattern='SELECT (.*) FROM '
+
+  if [[ $1 =~ $pattern ]]; then
+    local fields="${BASH_REMATCH[1]}"
+  else
+    alert 'Invalid SOQL Query'
+    echo "Usage: workbench.sh -q 'SELECT Field1, Field2 FROM Object [WHERE Field1 = \"value\"]'"
+    exit 1
+  fi
+
+  shopt -u nocasematch
+  local IFS=','
+  local line='------------------------------'
+
+  for item in $fields; do
+    item=${item// /}
+    headerrow="${headerrow}, \"$item\""
+    underlinerow="${underlinerow}, \"${line:(${#line} - ${#item})}\""
+    fieldfilter="${fieldfilter}, .${item}"
+  done
+
+  headerrow=${headerrow:2}
+  underlinerow=${underlinerow:2}
+  fieldfilter=${fieldfilter:2}
+}
+
+function getAccessToken() {
+  # Authenticate with Salesforce
+  local oauth2response=`curl -sS https://${sf_instance}.salesforce.com/services/oauth2/token -d "grant_type=password" -d "client_id=${sf_client_id}" -d "client_secret=${sf_client_secret}" -d "username=${sf_username}" -d "password=${sf_password}"`
+  local pattern='"access_token":"([^"]*)"'
+
+  if [[ $oauth2response =~ $pattern ]]; then	
+    access_token="${BASH_REMATCH[1]}"
+  else
+    alert 'Failed to grab access token from Salesforce'
+    echo $oauth2response
+    exit 1
+  fi
+}
+
+# Parse options
 if [[ "$#" < 2 ]]; then
   usage
   exit 1
@@ -81,15 +135,15 @@ fi
 while [[ "$#" > 1 ]]; do case $1 in
     -c) config_location="$2";;
     -d) describe="$2";;
-    -f) format="$2";;
+    -f) givenformat="$2";;
     -h) usage; exit 0;;
     -q) query="$2";;
     *) alert "Unrecognised option $1"; usage; exit 1;
   esac; shift; shift
 done
 
+# Detect first-time run and perform setup
 if [ ! -f $default_config_location ]; then
-  # Do setup
   alert 'Detected first-time run, entering setup...'
   
   read -p "Please enter your Salesforce username (and press ENTER): " sf_username 
@@ -111,6 +165,7 @@ if [ ! -f $default_config_location ]; then
   fi
 fi
 
+# Check for existance of custom config, if supplied
 if [ ! -z "$config_location" ]; then
   if [ ! -f $config_location ]; then
     alert 'Config file provided does not exist'
@@ -120,25 +175,81 @@ else
   config_location=$default_config_location
 fi
 
+# Read config (custom or default)
 source $config_location
 
-oauth2response=`curl -sS https://${sf_instance}.salesforce.com/services/oauth2/token -d "grant_type=password" -d "client_id=${sf_client_id}" -d "client_secret=${sf_client_secret}" -d "username=${sf_username}" -d "password=${sf_password}"`
-pattern='"access_token":"([^"]*)"'
-
-if [[ $oauth2response =~ $pattern ]]; then	
-    access_token="${BASH_REMATCH[1]}"
-else
-  alert 'Failed to grab access token from Salesforce'
-  echo $oauth2response
-  exit 1
+# Override format from config if passed
+if [ ! -z "$givenformat" ]; then
+  format="$givenformat"
 fi
 
+# Check format
+format=$(echo $format | awk '{print tolower($0)}')
+
+case $format in
+  json|xml)
+    ;;
+  csv|table)
+    which jq > /dev/null || alertNoJq 
+    ;;
+  *)
+    alert "Unknown format $format given"
+    usage
+    exit 1
+    ;;
+esac
+
+# Handle SOQL Queries
 if [ ! -z "$query" ]; then
-  curl -sSG --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
+  if [[ $format == "csv" ]] || [[ $format == "table" ]]; then
+    parseSOQLQueryForFields "$query"
+
+    originalformat=$format
+    format='json'
+  fi
+
+  getAccessToken
+  output=`curl -sSG --data-urlencode "q=${query}" "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/query.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"`
+
+  if [[ $originalformat == "csv" ]]; then
+    echo "$output" | jq -r "[$headerrow], (.records[] | [$fieldfilter]) | @csv"
+  elif [[ $originalformat == "table" ]]; then
+    echo "$output" | jq -r "[$headerrow], [$underlinerow], (.records[] | [$fieldfilter]) | @csv" | sed 's/","/~/g' | sed 's/"//g' | column -t -s~
+  else
+    echo "$output"
+  fi
+
   echo
 fi
 
+# Handle describe calls
 if [ ! -z "$describe" ]; then
-  curl -sSG "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/sobjects/${describe}/describe.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"
+  if [[ $format == "csv" ]]; then
+    alert 'The CSV format is not supported for describe operation'
+    exit 1
+  elif [[ $format == "table" ]]; then
+    originalformat=$format
+    format='json'
+  fi
+
+  getAccessToken
+  output=`curl -sSG "https://${sf_instance}.salesforce.com/services/data/${sf_api_version}/sobjects/${describe}/describe.${format}" -H "Authorization: Bearer ${access_token}" -H "X-PrettyPrint:1"`
+  
+  if [[ $originalformat == "table" ]]; then
+    echo "${bold}Properties${normal}"
+    echo "=========="
+    echo "$output" | jq -r 'del(.[]|iterables) | del(.[]|nulls) | to_entries[] | [.key, .value] | @csv' | sed 's/true/"\xE2\x9C\x93"/' | sed 's/false/"\xE2\xA8\xAF"/' | sed 's/"//g' | column -t -s,
+    echo
+    echo "${bold}Child Relationships${normal}"
+    echo "==================="
+    echo "$output" | jq -r '["Field", "Object", "Relationship Name", "Deprecated", "Cascades Deletes", "Restricts Deletes"], ["-----", "------", "-----------------", "----------", "----------------", "-----------------"], (.childRelationships[] | [.field, .childSObject, .relationshipName, .deprecatedAndHidden, .cascadeDelete, .restrictedDelete]) | @csv' | sed 's/,,/," ",/g' | sed 's/true/"\xE2\x9C\x93"/g' | sed 's/false/"\xE2\xA8\xAF"/g' | sed 's/"//g' | column -t -s,
+    echo
+    echo "${bold}Fields${normal}"
+    echo "======"
+    echo "$output" | jq -r '["Label", "Name", "Type", "Unique", "Updatable"], ["-----", "----", "----", "------", "---------"], (.fields[] | [.label, .name, .type, .unique, .updateable]) | @csv' | sed 's/,,/," ",/g' | sed 's/true/"\xE2\x9C\x93"/g' | sed 's/false/"\xE2\xA8\xAF"/g' | sed 's/"//g' | column -t -s,
+  else
+    echo "$output"
+  fi
+
   echo
 fi
