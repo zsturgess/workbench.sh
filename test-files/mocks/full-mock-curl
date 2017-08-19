@@ -1,0 +1,13 @@
+#!/bin/bash
+# This mock will return enough of a mocked oauth response to allow
+# workbench.sh to continue past the access token, and fall back to
+# a simple echo-mock for everything else
+
+if [[ "$2" == *"/services/oauth2/token" ]]; then
+  echo '{"access_token":"BaT!vuMJgDaaVAj","instance_url":"https://kl7rUpMurVrfTq.my.salesforce.com","id":"https://login.salesforce.com/id/BaT/005200MJgDaaVAjAAS","token_type":"Bearer","issued_at":"1502440581628","signature":"K4GILQJ2p3892dIUlSIa3rHt8UZBBecbE7CXBhaxUhC10="}'
+elif [[ "$2" == *"/Lead/describe."* ]]; then
+  cat test-files/LeadDescribe.json
+else
+  cat test-files/LeadQuery.json
+fi
+
